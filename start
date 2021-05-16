@@ -1,0 +1,67 @@
+#!/bin/bash
+
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  TARGET="$(readlink "$SOURCE")"
+  if [[ $TARGET == /* ]]; then
+    #echo "SOURCE '$SOURCE' is an absolute symlink to '$TARGET'"
+    SOURCE="$TARGET"
+  else
+    DIR="$( dirname "$SOURCE" )"
+    #echo "SOURCE '$SOURCE' is a relative symlink to '$TARGET' (relative to '$DIR')"
+    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  fi
+done
+
+SRPATH="$( dirname "$SOURCE" )"
+SFPATH="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+if [ "$SFPATH" != "$SRPATH" ]; then
+  RDIR=$SRPATH    # relativ path directory
+fi
+
+cwdir=$PWD
+wdir=$SFPATH
+
+if [ "$cwdir" != "$wdir" ]; then
+	cd $wdir
+fi
+
+sudo /bin/bash $wdir/hybrid/connect/get-swarmlab-ca > /dev/null 2>&1
+sudo /bin/bash $wdir/hybrid/connect/get-base-ca > /dev/null 2>&1
+
+./update-agent.sh
+docker pull hub.swarmlab.io:5480/venusclient:latest
+docker pull hub.swarmlab.io:5480/venus-admin:latest
+
+bash ./start-venus-stats
+
+pm2 stop venusclient > /dev/null 2>&1
+sleep 1
+pm2 start ecosystem.config.js --watch --ignore-watch="node_modules" > /dev/null 2>&1
+sleep 3
+pm2 stop venusclient > /dev/null 2>&1
+sleep 3
+pm2 start venusclient
+
+
+txturl='\033[1;36m'
+txturl1='\033[0;36m'
+txtg='\033[0;32m'
+NOCOLOR='\033[0m'
+
+echo -e "$(
+cat << EOM
+
+${txtg} DONE  build successfully ${NOCOLOR}
+
+    App running at:
+     - Local:   ${txturl1} http://localhost:${txturl}8085/index.html
+
+${NOCOLOR}
+
+EOM
+)"
+
+
+

@@ -1,0 +1,136 @@
+#!/bin/bash
+
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  TARGET="$(readlink "$SOURCE")"
+  if [[ $TARGET == /* ]]; then
+    #echo "SOURCE '$SOURCE' is an absolute symlink to '$TARGET'"
+    SOURCE="$TARGET"
+  else
+    DIR="$( dirname "$SOURCE" )"
+    #echo "SOURCE '$SOURCE' is a relative symlink to '$TARGET' (relative to '$DIR')"
+    SOURCE="$DIR/$TARGET" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  fi
+done
+
+SRPATH="$( dirname "$SOURCE" )"
+SFPATH="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+if [ "$SFPATH" != "$SRPATH" ]; then
+  RDIR=$SRPATH    # relativ path directory
+fi
+
+cwdir=$PWD
+wdir=$SFPATH
+
+if [ "$cwdir" != "$wdir" ]; then
+	cd $wdir
+fi
+
+#echo $wdir
+
+#
+#files/mongo/
+# docker-compose.yml
+# .env
+# logs
+# mongod.conf
+# package.json
+# venus-stats.js
+# wg-json
+#
+
+function EPHEMERAL_PORT() {
+    LOW_BOUND=49152
+    RANGE=16384
+    while true; do
+        CANDIDATE=$[$LOW_BOUND + ($RANDOM % $RANGE)]
+        (echo "" >/dev/tcp/127.0.0.1/${CANDIDATE}) >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo $CANDIDATE
+            break
+        fi
+    done
+}
+
+if [ ! -d  $wdir/hybrid/venus-stats ]; then
+	mkdir -p $wdir/hybrid/venus-stats
+fi
+
+cp -raf $wdir/files/mongo/wg-json $wdir/hybrid/venus-stats
+cp -raf $wdir/files/mongo/mongod.conf $wdir/hybrid/venus-stats
+cp -raf $wdir/files/mongo/docker-compose.yml $wdir/hybrid/venus-stats
+cp -raf $wdir/files/mongo/venus-stats.js $wdir/hybrid/venus-stats
+
+
+swuser=swarmlab
+swpass=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
+db=venus
+conf=$wdir/hybrid/venus-stats/mongod.conf
+port=$(EPHEMERAL_PORT)
+coll=logs
+ip='127.0.0.1'
+venusadmin=$wdir/hybrid/connect
+
+
+cat << FOE > $wdir/hybrid/venus-stats/.env
+#!/bin/bash
+
+MONGO_INITDB_ROOT_USERNAME=$swuser
+MONGO_INITDB_ROOT_PASSWORD=$swpass
+MONGO_INITDB_DATABASE=$db
+
+MONGO_VENUS_CONF=$conf
+MONGO_VENUS_IP=$ip
+MONGO_VENUS_PORT=$port
+MONGO_VENUS_COLLECTION=$coll
+VENUSADMIN=$venusadmin
+FOE
+
+
+cat << FOE > $wdir/hybrid/venus-stats/start
+#!/bin/bash
+
+cd $wdir/hybrid/venus-stats;
+
+docker-compose down &&
+ docker-compose rm &&
+ docker volume rm venus-stats_swlabmongovenusData &&
+ docker-compose pull &&
+ docker-compose build --no-cache &&
+ docker-compose up -d --force-recreate
+cd $wdir
+FOE
+
+chmod +x $wdir/hybrid/venus-stats/start
+
+cat << FOE > $wdir/hybrid/venus-stats/stop
+#!/bin/bash
+
+cd $wdir/hybrid/venus-stats;
+
+docker-compose down &&
+ docker-compose rm 
+cd $wdir
+FOE
+
+chmod +x $wdir/hybrid/venus-stats/stop
+
+
+setconfig=$(jq  \
+        --arg key0   'mongo_user' --arg mongo_user $swuser  \
+        --arg key1   'mongo_pass' --arg mongo_pass $swpass \
+        --arg key2   'mongo_db'   --arg mongo_db   $db \
+        --arg key3   'mongo_ip'   --arg mongo_ip   $ip \
+        --arg key4   'mongo_port' --arg mongo_port $port \
+        --arg key5   'mongo_coll' --arg mongo_coll $coll \
+        '. | .[$key0]=$mongo_user | .[$key1]=$mongo_pass | .[$key2]=$mongo_db | .[$key3]=$mongo_ip | .[$key4]=$mongo_port | .[$key5]=$mongo_coll' <<<'{}'
+)
+
+echo $setconfig > $wdir/hybrid/venus-stats/config.json
+
+
+cd ./hybrid/venus-stats/
+./start
+cd $wdir
+
