@@ -1,0 +1,1 @@
+docker exec -it swarmlabwg-QeNNwRr5tj1evRh58wuxUA80fIo6e0QH /bin/bash -c "wg show swlabQeNNwRr5tj allowed-ips | grep 'uML/dUKzfAYRA0o7T+1mS8jMvap2OP9aAs5e4rKK418='"

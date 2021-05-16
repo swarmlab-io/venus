@@ -1,0 +1,46 @@
+version: '3.8'
+
+services: 
+
+    swlabmongovenus:
+        hostname: 'swlabmongovenus'
+        container_name: 'swlabmongovenus'
+        image: 'mongo:4.2'
+        restart: 'on-failure'
+        expose: 
+            - 27017
+        ports: 
+            - ${MONGO_VENUS_PORT}:27017 
+        networks: 
+            - netswlabmongovenusLocal
+        volumes:
+            - swlabmongovenusData:/data/db
+            - swlabmongovenusLog:/var/log/mongodb
+            - ${MONGO_VENUS_CONF}:/etc/mongod.conf
+        env_file:
+            - .env
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+            MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+
+    swlabadminvenus:
+        hostname: 'swlabadminvenus'
+        container_name: 'swlabadminvenus'
+        image: 'hub.swarmlab.io:5480/venus-admin:latest'
+        entrypoint: /bin/bash -c "tail -f /dev/null"
+        user: root
+        network_mode: host
+        cap_add:
+            - NET_ADMIN
+            - SYS_MODULE
+        volumes:
+            - ${VENUSADMIN}:/config
+            - /lib/modules:/lib/modules
+
+volumes: 
+    swlabmongovenusData:
+    swlabmongovenusLog:
+
+networks: 
+    netswlabmongovenusLocal:

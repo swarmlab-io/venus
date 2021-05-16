@@ -1,0 +1,9 @@
+registry_address=hub.swarmlab.io
+registry_port=5443
+mkdir -p /etc/docker/certs.d/$registry_address:$registry_port
+openssl s_client -showcerts -connect $registry_address:$registry_port < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /etc/docker/certs.d/$registry_address:$registry_port/ca.crt
+
+registry_port=5480
+mkdir -p /etc/docker/certs.d/$registry_address:$registry_port
+openssl s_client -showcerts -connect $registry_address:$registry_port < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /etc/docker/certs.d/$registry_address:$registry_port/ca.crt
+
