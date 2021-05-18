@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  swarmlabclient:
+    image: hub.swarmlab.io:5443/playground-hybrid-agent:latest
+    environment:
+     - NODENAME={{.Node.Hostname}}
+    ports:
+      - "55543:443"
+    networks:
+       hybrid-net:
+
+
+networks:
+  hybrid-net:
+
