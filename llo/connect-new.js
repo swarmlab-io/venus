@@ -236,6 +236,7 @@ async function wg_save_connect_linux(res) {
   res.netmask       
   res.privatekey    
   res.allowedips    
+  res.network_mode   
   res.interfaceip   
   res.endpointfpath 
 mongoconfig
@@ -245,9 +246,29 @@ export NODE_PATH=$(npm root --quiet -g)
    try {
     var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
 
+     var NETWORK_MODE=''
+     if(res.network_mode){
+        var WGNETWORK_NAME=''
+        NETWORK_MODE=' --net=host '
+        NETWORK_MODE_CREATE='no'
+     }else{
+        var WGNETWORK_NAME=`swlab${res.bootstrapstackid.slice(0, 10)}`
+        NETWORK_MODE=` --net=${WGNETWORK_NAME}`
+        NETWORK_MODE_CREATE='yes'
+     }
 
 
     const myExec = `
+
+     NETWORK_MODE_CREATE=${NETWORK_MODE_CREATE}
+     if [ "\$NETWORK_MODE_CREATE" = 'yes' ]; then
+       NETWORK_NAME=${WGNETWORK_NAME}
+       docker network ls --filter name=^\${NETWORK_NAME}$ --format="{{ .Name }}"
+       if [ -z \$(docker network ls --filter name=^\${NETWORK_NAME}$ --format="{{ .Name }}") ] ; then 
+            docker network create \${NETWORK_NAME} ; 
+       fi
+     fi
+
      docker exec  swarmlabwg-${res.bootstrapstackid} /bin/bash -c "ip link set ${DEV_NAME} down; ip link del ${DEV_NAME}"
 sleep 1
 docker stop swarmlabwg-${res.bootstrapstackid}; docker container rm swarmlabwg-${res.bootstrapstackid}
@@ -255,7 +276,7 @@ sleep 1
 docker pull hub.swarmlab.io:5480/venusclient:latest
 sleep 1
 docker run -d \
-  --net=host \
+  ${NETWORK_MODE} \
   --name=swarmlabwg-${res.bootstrapstackid} \
   --cap-add=NET_ADMIN \
   --cap-add=SYS_MODULE \
@@ -319,6 +340,7 @@ app.post('/hybrid_join_start', (req, res, next) => {
   RES.netmask    = req.body["netmask"]
   RES.privatekey  = req.body["privatekey"]
   RES.allowedips  = req.body["allowedips"]
+  RES.network_mode  = req.body["network_mode"]
   RES.interfaceip  = req.body["peer_ip"]
   RES.endpointfpath = `${RES.serverip}:${RES.endpoint}`
   RES.dev_name    = `swlab${RES.bootstrapstackid.slice(0, 10)}`
@@ -472,7 +494,7 @@ app.get('/getserviceshybridstatus', (req, res, next) => {
         var RES = new Object();
         RES.bootstrapnameid    = req.query["bootstrapnameid"]
         RES.bootstrapstackname    = req.query["bootstrapstackname"]
-        var showexec = `docker ps --format '{"Names":"{{ .Names }}", "Status":"{{.Status}}"}' | jq . -s `
+        var showexec = `docker ps --format '{"Names":"{{ .Names }}", "Status":"{{.Status}}", "Networks":"{{.Networks}}" }' | jq . -s `
         exec(showexec, (err, stdout, stderr) => {
            if (err) {
               console.error(`exec error: ${err}`);
