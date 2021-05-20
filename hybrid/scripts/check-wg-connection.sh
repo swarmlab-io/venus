@@ -1,13 +1,31 @@
 #!/bin/bash
 
-
+declare -a wgint
+#for fint in $(docker inspect --format '{{.HostConfig.NetworkMode}}' $(docker ps --format '{{ .Names }}') |  grep "^swlab"); do
+#	#echo $fint
+#	ff=$fint
+#	ff="${ff#"${ff%%[![:space:]]*}"}"
+#	ff="${ff%"${ff##*[![:space:]]}"}"
+#	ff=${ff:5}
+#	#echo $ff
+#	wgint+=($ff)
+#done
 for f in /sys/class/net/swlab*; do
     if [ -L "$f" ]; then
-	#echo $f
 	f=$(basename $f)
 	f="${f#"${f%%[![:space:]]*}"}"
 	f="${f%"${f##*[![:space:]]}"}"
 	f=${f:5}
+	f=$(basename $f)
+	#echo $f
+	wgint+=($f)
+    fi
+done
+
+
+#echo "---------------"
+for f in "${wgint[@]}"; do 
+	#for fdir in ./hybrid/connect/$f*; do
 	for fdir in /config/$f*; do
 	    if [[ -d "$fdir" && ! -L "$fdir" ]]; then
 		fdirfull=$fdir
@@ -87,7 +105,6 @@ for f in /sys/class/net/swlab*; do
 		    fi
 	    fi
 	done
-    fi
 done
 
 echo [$JSON] 

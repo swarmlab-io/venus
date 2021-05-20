@@ -71,6 +71,7 @@ port=$(EPHEMERAL_PORT)
 coll=logs
 ip='127.0.0.1'
 venusadmin=$wdir/hybrid/connect
+venusint=$wdir/hybrid/scripts/check-wg-connection.sh
 
 
 cat << FOE > $wdir/hybrid/venus-stats/.env
@@ -85,6 +86,7 @@ MONGO_VENUS_IP=$ip
 MONGO_VENUS_PORT=$port
 MONGO_VENUS_COLLECTION=$coll
 VENUSADMIN=$venusadmin
+VENUSINT=$venusint
 FOE
 
 

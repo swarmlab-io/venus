@@ -535,7 +535,7 @@ app.get('/getserviceshybridstatus', (req, res, next) => {
 app.get('/getwginterfaces', (req, res, next) => {
 
     var mypath = process.cwd()
-    var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
+    //var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
 		var showexec = `docker exec  swlabadminvenus /bin/bash -c "/usr/local/bin/check-wg-connection.sh"`
     var RES = new Object();
     const page    	= req.query["page"]
@@ -555,13 +555,13 @@ app.get('/getwginterfaces', (req, res, next) => {
     });
 
     log.stderr.on('data', function (data) {
-      //console.log('error '+JSON.stringify(n));
         RES.code  = req.query["action"]
         RES.token = req.query["token"]
         RES.error = true
         RES.error_msg = "no"
         RES.data = data.toString();
-      res.json(RES.data)
+      console.log('error '+JSON.stringify(RES));
+      //res.json(RES.data)
     });
 
     log.stdout.on('data', function (data) {
