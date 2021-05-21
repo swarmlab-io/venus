@@ -308,7 +308,13 @@ docker run -d \
   const myExecLog = `#!/bin/sh
 
 date=\`date '+%Y-%m-%d-%H:%M'\`
-node /usr/local/bin/venus-stats.js --insert=yes --port=${mongoserver.mongo_port} --ip='127.0.0.1' --user=swarmlab --password=${mongoserver.mongo_pass} --db=${mongoserver.mongo_db} --coll=${mongoserver.mongo_coll} --json=$date --stackid=${res.bootstrapstackid} --stackinterface=${res.privatekey} --stackpeer=${res.publickey} --devname=${DEV_NAME}
+NETWORK_MODE_CREATE=${NETWORK_MODE_CREATE}
+if [ "\$NETWORK_MODE_CREATE" = 'no' ]; then
+  node /usr/local/bin/venus-stats.js --insert=yes --port=${mongoserver.mongo_port} --ip='127.0.0.1' --user=swarmlab --password=${mongoserver.mongo_pass} --db=${mongoserver.mongo_db} --coll=${mongoserver.mongo_coll} --json=$date --stackid=${res.bootstrapstackid} --stackinterface=${res.privatekey} --stackpeer=${res.publickey} --devname=${DEV_NAME}
+else
+  IPmongo=$(/sbin/ip route|awk '/default/ { print \$3 }')
+  node /usr/local/bin/venus-stats.js --insert=yes --port=${mongoserver.mongo_port} --ip=\$IPmongo --user=swarmlab --password=${mongoserver.mongo_pass} --db=${mongoserver.mongo_db} --coll=${mongoserver.mongo_coll} --json=$date --stackid=${res.bootstrapstackid} --stackinterface=${res.privatekey} --stackpeer=${res.publickey} --devname=${DEV_NAME}
+fi
 	`
 
    fs.writeFileSync(`./hybrid/connect/${res.bootstrapstackid}/scripts/1/logs`, myExecLog);
@@ -536,7 +542,8 @@ app.get('/getwginterfaces', (req, res, next) => {
 
     var mypath = process.cwd()
     //var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
-		var showexec = `docker exec  swlabadminvenus /bin/bash -c "/usr/local/bin/check-wg-connection.sh"`
+		//var showexec = `docker exec  swlabadminvenus /bin/bash -c "/usr/local/bin/check-wg-connection.sh"`
+		var showexec = `/bin/bash ./hybrid/scripts/linux-check-wg-connection.sh`
     var RES = new Object();
     const page    	= req.query["page"]
     const per_page  = req.query["per_page"]
@@ -637,13 +644,17 @@ app.get('/getwginterfacesstats', (req, res, next) => {
             if(err){
                 console.log(err);
             } else {
+              console.log(mongoserver)
               var dbo = db.db(mongoserver.mongo_db);
               var limit = 10
               dbo.collection(mongoserver.mongo_coll).find({"stackid":bootstrapstackid},{sort:{_id:-1}}).limit(limit).toArray(function(err, result) {
+              try {
                 if(err){
                     console.log(err);
+                      //res.json(err)
                 } else {
-                    try {
+                    //console.log(result);
+                    //console.log(` ----------${bootstrapstackid}---------------`);
                         if(result[0].log[0].peers[respublickey].transferTx){
                             var datalenth = result.length
                             var labels = []
@@ -688,10 +699,11 @@ app.get('/getwginterfacesstats', (req, res, next) => {
                           //console.log(JSON.stringify('-------- '+JSON.stringify(result[0].log[0].peers[respublickey].transferTx)));
                       db.close();
                       res.json(chartdata)
+                     }
                    } catch (err) {
                       console.error(err);
+                      res.json(err)
                    }
-                }
               });
             }
         });
