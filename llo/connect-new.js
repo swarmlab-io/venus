@@ -844,7 +844,8 @@ function mywgRemoveClosedConnection(){
                                       var wgdown = `/bin/bash /config/${nn.bootstrapstackid}/ifdown_linux`
                                       var showexecrm1 = `/bin/sh ./hybrid/connect/${bootstrapstackid}/swarmlabwgdown`
 
-                                      //console.log('fount '+found + ' ' + search )
+                                      console.log('fount '+found + ' ' + showexecrm1 )
+                                   /*
                                       var showexec1 = `docker exec swlabadminvenus /bin/bash -c "${wgdown}"; ${showexecrm1}`
                                          log1 = spawn(showexec1, {
                                             shell: true,
@@ -858,6 +859,7 @@ function mywgRemoveClosedConnection(){
                                               n.data = code
                                               io.emit('message_close', n);
                                           });
+                                          */
                                  }else{
                                     console.log('fount '+found + ' ' + search )
                                  }
