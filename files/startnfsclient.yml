@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  wgmount-${share_name}:
+    image: hub.swarmlab.io:5480/venus-fsshare-client
+    container_name: nfsclient
+    restart: unless-stopped
+    network_mode: "container:${share_container}"
+    privileged: true
+    container_name: wgmount-${share_name}
+    environment:
+     - FSTYPE=nfs4
+     - SERVER=${share_ip}
+     - SHARE=/
+     - MOUNTPOINT=/mnt/share
+     - MOUNT_OPTIONS="vers=4,loud"
+    volumes:
+      - ${share_dir}:/mnt/share:shared
+      - /lib/modules:/lib/modules:ro
+    cap_add:
+      - SYS_ADMIN
+      - SYS_MODULE
+

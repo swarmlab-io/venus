@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+
+  wgshare-${share_name}:
+    image: hub.swarmlab.io:5480/venus-fsshare-server:latest
+    #image: itsthenetwork/nfs-server-alpine:12
+    network_mode: "container:${share_container}"
+    privileged: true
+    container_name: wgshare-${share_name}
+    restart: unless-stopped
+    environment:
+     - SHARED_DIRECTORY=/data
+     - NFS_EXPORT_0='/data *(${share_rights},fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)'
+     - share_name=${share_name}
+     - share_stackname=${share_container}
+     - share_volume=${share_volume}
+
+    volumes:
+      - ${share_dir}:/data
+      - /lib/modules:/lib/modules:ro
+    cap_add:
+      - SYS_ADMIN
+      #- SETPCAP
+      - SYS_MODULE
+

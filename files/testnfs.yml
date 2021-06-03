@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  testclient:
+    image: alpine
+    container_name: testclient
+    restart: unless-stopped
+    network_mode: "container:swarmlabwg-CdHuGiNZMNm0uehQfa1sZdAl0n2CMXcS"
+    command: tail -f /dev/null
+

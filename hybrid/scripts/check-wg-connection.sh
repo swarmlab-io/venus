@@ -7,7 +7,7 @@ declare -a wgint
 #	ff="${ff#"${ff%%[![:space:]]*}"}"
 #	ff="${ff%"${ff##*[![:space:]]}"}"
 #	ff=${ff:5}
-#	#echo $ff
+	#echo $ff
 #	wgint+=($ff)
 #done
 for f in /sys/class/net/swlab*; do
@@ -17,7 +17,7 @@ for f in /sys/class/net/swlab*; do
 	f="${f%"${f##*[![:space:]]}"}"
 	f=${f:5}
 	f=$(basename $f)
-	#echo $f
+	echo $f
 	wgint+=($f)
     fi
 done

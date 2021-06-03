@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  nfsclient:
+    image: hub.swarmlab.io:5480/venus-fsshare-client
+    container_name: nfsclient
+    restart: unless-stopped
+    network_mode: "service:masternfsclient"
+    privileged: true
+    environment:
+     - FSTYPE=nfs4
+     - SERVER=10.1.3.1
+     - SHARE=/
+     - MOUNTPOINT=/mnt/share
+     - MOUNT_OPTIONS="vers=4,loud"
+    volumes:
+      - /home/zeus/docker/serverconfig/testtmp1:/mnt/share:shared 
+      - /lib/modules:/lib/modules:ro
+    cap_add:
+      - SYS_ADMIN
+      - SYS_MODULE
+

@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+
+  nfsserver:
+    image: hub.swarmlab.io:5480/venus-fsshare-server:latest
+    #image: itsthenetwork/nfs-server-alpine:12
+    network_mode: "container:swarmlabwg-DyQr6vnRhsEsSwqIxh9WtYIxEVGf0IXr"
+    privileged: true
+    container_name: wg-masterfsserver
+    restart: unless-stopped
+    environment:
+     - SHARED_DIRECTORY=/data
+     - NFS_EXPORT_0='/data *(ro,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)'
+    volumes:
+      - /data/appl/ok/swarmlab-venus/src-local/tmp/share:/data
+      - /lib/modules:/lib/modules:ro
+    cap_add:
+      - SYS_ADMIN
+      #- SETPCAP
+      - SYS_MODULE
+

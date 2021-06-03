@@ -7,6 +7,8 @@ var app       = express();
 const cors    = require('cors')
 const helmet  = require('helmet');
 var MongoClient = require('mongodb').MongoClient;
+const yaml = require('js-yaml');
+var mpath = require("path");
 
 var allowedOrigins = [ 
       'http://localhost:3080',
@@ -360,7 +362,7 @@ console.log(RES.dev_name)
   // *****************************************
 	//fs.mkdirSync(`./hybrid/connect/${res.bootstrapstackid}`, { recursive: true });
   fs.mkdirSync(`./hybrid/connect/${RES.bootstrapstackid}/scripts/1`, { recursive: true });
-  //fs.mkdirSync(`./hybrid/connect/${res.bootstrapstackid}/scripts/5`, { recursive: true });
+  fs.mkdirSync(`./hybrid/connect/${RES.bootstrapstackid}/volumes`, { recursive: true });
  (async() => {
   RES.serverconf    = await wg_save_clientconf(RES)
   RES.serverrun     = await wg_save_ifup_linux(RES)
@@ -713,6 +715,605 @@ app.get('/getwginterfacesstats', (req, res, next) => {
 
 });
 
+
+
+
+app.get('/dockerservices', (req, res, next) => {
+          var RES = new Object();
+          const page      = req.query["page"]
+          const per_page  = req.query["per_page"]
+          var sort      = req.query["sort"]
+          var filter    = req.query["filter"]
+          var type      = req.query["type"]
+      var sort      = req.query["sort"]
+      var sorttmp1 = sort.split('|');
+      var sortname = sorttmp1[0];
+      var sortorder = sorttmp1[1];
+    var showexec = `docker ps --format '{"ID":"{{ .ID }}", "Image": "{{ .Image }}", "Names":"{{ .Names }}", "Ports":"{{.Ports}}", "Networks":"{{.Networks}}", "Status":"{{.Status}}","RunningFor":"{{.RunningFor}}","CreatedAt":"{{.CreatedAt}}"}' | jq . -s `
+    exec(showexec, (err, stdout, stderr) => {
+              if (err) {
+                              console.error(`exec error: ${err}`);
+                              return;
+                            }
+            var nn = []
+            var string = stdout.toString()
+            var datajson = JSON.parse(string);
+
+            var results1 = []
+                    var grep1 = new RegExp('swlabadminvenus');
+                    var datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(!grep1.test(datajson[i]['Names'])){
+                               results1.push(datajson[i]);
+                          }
+                      }
+                    datajson=results1
+            var results2 = []
+                    var grep2 = new RegExp('swlabmongovenus');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(!grep2.test(datajson[i]['Names'])){
+                               results2.push(datajson[i]);
+                          }
+                      }
+                    datajson=results2
+
+            var results3 = []
+                    var grep3 = new RegExp('swarmlabwg-');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(!grep3.test(datajson[i]['Names'])){
+                               results3.push(datajson[i]);
+                          }
+                      }
+                    datajson=results3
+
+            var results4 = []
+                    var grep4 = new RegExp('swarmlab-hybrid-agent');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(!grep4.test(datajson[i]['Names'])){
+                               results4.push(datajson[i]);
+                          }
+                      }
+                    datajson=results4
+
+            var results5 = []
+                    var grep5 = new RegExp('wgmount-');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(!grep5.test(datajson[i]['Names'])){
+                               results5.push(datajson[i]);
+                          }
+                      }
+                    datajson=results5
+
+            var results6 = []
+                    var grep6 = new RegExp('wgshare-');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(!grep6.test(datajson[i]['Names'])){
+                               results6.push(datajson[i]);
+                          }
+                      }
+                    datajson=results6
+
+            var results = []
+              if(filter !== 'NULL'){
+                    var grep = new RegExp(filter);
+                    var datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep.test(datajson[i]['Names'])){
+                               results.push(datajson[i]);
+                          }
+                      }
+                    datajson=results
+                  }
+        if(sortname == 'Names'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+              return a.Names.localeCompare(b.Names);
+            }else{
+              return b.Names.localeCompare(a.Names);
+            }
+          });
+        }else if(sortname == 'Status'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+                return a.Status.localeCompare(b.Status);
+            }else{
+                return b.Status.localeCompare(a.Status);
+            }
+          });
+        }
+      var resultid = []
+      var datalenth2 = datajson.length
+          for (var i=0 ; i < datalenth2 ; i++)
+          {
+            datajson[i].id=i
+            datajson[i]._id=i
+            resultid.push(datajson[i]);
+          }
+      datajson=resultid
+        var total = datajson.length;
+        var perpage = per_page
+        var lastpage = total/perpage;
+
+        if(lastpage <= 1) {
+          lastpage=1
+        }else{
+          lastpage++
+        }
+        lastpage = Math.trunc(lastpage);
+        var next=(page+1);
+        if(next >= lastpage){
+          next=lastpage;
+        }
+        var prev=(page-1);
+        if(prev == 0){
+          prev=1;
+        }
+        var from=((page-1)*perpage)+1;
+        var to=(perpage*page)
+              var myplaybooks = new Object();
+            var links = `
+              {
+                    "pagination": {
+                            "total": ${total},
+                            "per_page": ${perpage},
+                            "current_page": ${page},
+                            "last_page": ${lastpage},
+                            "next_page_url": "?page=${next}",
+                            "prev_page_url": "?page=${prev}",
+                            "from": ${from},
+                            "to": ${to},
+                            "frommongo": ${from},
+                            "tomongo": ${to}
+                          }
+                  }
+                `
+              myplaybooks.links = JSON.parse(links);
+              from--
+              myplaybooks.data = datajson.slice(from,to);
+              var RES = new Object();
+              RES.code    = req.query["action"]
+              RES.token    = req.query["token"]
+              RES.error = false
+              RES.error_msg = "ok"
+              RES.data = myplaybooks;
+              res.json(RES.data)
+    });
+});
+
+// VENUS
+app.get('/hybridnetworks', (req, res, next) => {
+          var RES = new Object();
+          const page      = req.query["page"]
+          const per_page  = req.query["per_page"]
+          var sort      = req.query["sort"]
+          var filter    = req.query["filter"]
+          var type      = req.query["type"]
+      var sort      = req.query["sort"]
+      var sorttmp1 = sort.split('|');
+      var sortname = sorttmp1[0];
+      var sortorder = sorttmp1[1];
+    var showexec = `docker ps --format '{"ID":"{{ .ID }}", "Image": "{{ .Image }}", "Names":"{{ .Names }}", "Ports":"{{.Ports}}", "Networks":"{{.Networks}}", "Status":"{{.Status}}","RunningFor":"{{.RunningFor}}","CreatedAt":"{{.CreatedAt}}"}' | jq . -s `
+    exec(showexec, (err, stdout, stderr) => {
+              if (err) {
+                              console.error(`exec error: ${err}`);
+                              return;
+                            }
+            var nn = []
+            var string = stdout.toString()
+            var datajson = JSON.parse(string);
+
+            var results3 = []
+                    var grep3 = new RegExp('swarmlabwg-');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep3.test(datajson[i]['Names'])){
+                               results3.push(datajson[i]);
+                          }
+                      }
+                    datajson=results3
+
+            var results1 = []
+                    var grep1 = new RegExp(/^swlab/);
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep1.test(datajson[i]['Networks'])){
+                               results1.push(datajson[i]);
+                          }
+                      }
+                    datajson=results1
+
+            var results = []
+              if(filter !== 'NULL'){
+                    var grep = new RegExp(filter);
+                    var datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep.test(datajson[i]['Names'])){
+                               results.push(datajson[i]);
+                          }
+                      }
+                    datajson=results
+                  }
+
+       //swlabJZk0tKskTS
+
+
+        if(sortname == 'Names'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+              return a.Names.localeCompare(b.Names);
+            }else{
+              return b.Names.localeCompare(a.Names);
+            }
+          });
+        }else if(sortname == 'Status'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+                return a.Status.localeCompare(b.Status);
+            }else{
+                return b.Status.localeCompare(a.Status);
+            }
+          });
+        }
+      var resultid = []
+      var datalenth2 = datajson.length
+          for (var i=0 ; i < datalenth2 ; i++)
+          {
+            datajson[i].id=i
+            datajson[i]._id=i
+            resultid.push(datajson[i]);
+          }
+      datajson=resultid
+        var total = datajson.length;
+        var perpage = per_page
+        var lastpage = total/perpage;
+
+        if(lastpage <= 1) {
+          lastpage=1
+        }else{
+          lastpage++
+        }
+        lastpage = Math.trunc(lastpage);
+        var next=(page+1);
+        if(next >= lastpage){
+          next=lastpage;
+        }
+        var prev=(page-1);
+        if(prev == 0){
+          prev=1;
+        }
+        var from=((page-1)*perpage)+1;
+        var to=(perpage*page)
+              var myplaybooks = new Object();
+            var links = `
+              {
+                    "pagination": {
+                            "total": ${total},
+                            "per_page": ${perpage},
+                            "current_page": ${page},
+                            "last_page": ${lastpage},
+                            "next_page_url": "?page=${next}",
+                            "prev_page_url": "?page=${prev}",
+                            "from": ${from},
+                            "to": ${to},
+                            "frommongo": ${from},
+                            "tomongo": ${to}
+                          }
+                  }
+                `
+              myplaybooks.links = JSON.parse(links);
+              from--
+              myplaybooks.data = datajson.slice(from,to);
+              var RES = new Object();
+              RES.code    = req.query["action"]
+              RES.token    = req.query["token"]
+              RES.error = false
+              RES.error_msg = "ok"
+              RES.data = myplaybooks;
+              res.json(RES.data)
+    });
+});
+
+// VENUS
+app.get('/getshare_volumes', (req, res, next) => {
+          var RES = new Object();
+          const page      = req.query["page"]
+          const per_page  = req.query["per_page"]
+          var sort      = req.query["sort"]
+          var filter    = req.query["filter"]
+          var type      = req.query["type"]
+      var sort      = req.query["sort"]
+      var sorttmp1 = sort.split('|');
+      var sortname = sorttmp1[0];
+      var sortorder = sorttmp1[1];
+    var showexec = `docker ps --format '{"ID":"{{ .ID }}", "Image": "{{ .Image }}", "Names":"{{ .Names }}", "Ports":"{{.Ports}}", "Networks":"{{.Networks}}", "Status":"{{.Status}}","RunningFor":"{{.RunningFor}}","CreatedAt":"{{.CreatedAt}}"}' | jq . -s `
+    exec(showexec, (err, stdout, stderr) => {
+              if (err) {
+                              console.error(`exec error: ${err}`);
+                              return;
+                            }
+            var nn = []
+            var string = stdout.toString()
+            var datajson = JSON.parse(string);
+
+            var results3 = []
+                    var grep3 = new RegExp('wgshare-');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep3.test(datajson[i]['Names'])){
+                               results3.push(datajson[i]);
+                          }
+                      }
+                    datajson=results3
+
+            var results = []
+              if(filter !== 'NULL'){
+                    var grep = new RegExp(filter);
+                    var datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep.test(datajson[i]['Names'])){
+                               results.push(datajson[i]);
+                          }
+                      }
+                    datajson=results
+                  }
+
+       //swlabJZk0tKskTS
+
+
+        if(sortname == 'Names'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+              return a.Names.localeCompare(b.Names);
+            }else{
+              return b.Names.localeCompare(a.Names);
+            }
+          });
+        }else if(sortname == 'Status'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+                return a.Status.localeCompare(b.Status);
+            }else{
+                return b.Status.localeCompare(a.Status);
+            }
+          });
+        }
+      var resultid = []
+      var datalenth2 = datajson.length
+          for (var i=0 ; i < datalenth2 ; i++)
+          {
+            datajson[i].id=i
+            datajson[i]._id=i
+            resultid.push(datajson[i]);
+          }
+      datajson=resultid
+        var total = datajson.length;
+        var perpage = per_page
+        var lastpage = total/perpage;
+
+        if(lastpage <= 1) {
+          lastpage=1
+        }else{
+          lastpage++
+        }
+        lastpage = Math.trunc(lastpage);
+        var next=(page+1);
+        if(next >= lastpage){
+          next=lastpage;
+        }
+        var prev=(page-1);
+        if(prev == 0){
+          prev=1;
+        }
+        var from=((page-1)*perpage)+1;
+        var to=(perpage*page)
+              var myplaybooks = new Object();
+            var links = `
+              {
+                    "pagination": {
+                            "total": ${total},
+                            "per_page": ${perpage},
+                            "current_page": ${page},
+                            "last_page": ${lastpage},
+                            "next_page_url": "?page=${next}",
+                            "prev_page_url": "?page=${prev}",
+                            "from": ${from},
+                            "to": ${to},
+                            "frommongo": ${from},
+                            "tomongo": ${to}
+                          }
+                  }
+                `
+              myplaybooks.links = JSON.parse(links);
+              from--
+              myplaybooks.data = datajson.slice(from,to);
+              var RES = new Object();
+              RES.code    = req.query["action"]
+              RES.token    = req.query["token"]
+              RES.error = false
+              RES.error_msg = "ok"
+              RES.data = myplaybooks;
+              res.json(RES.data)
+    });
+});
+
+// VENUS
+app.get('/getshare_clientvolumes', (req, res, next) => {
+          var RES = new Object();
+          const page      = req.query["page"]
+          const per_page  = req.query["per_page"]
+          var sort      = req.query["sort"]
+          var filter    = req.query["filter"]
+          var type      = req.query["type"]
+      var sort      = req.query["sort"]
+      var sorttmp1 = sort.split('|');
+      var sortname = sorttmp1[0];
+      var sortorder = sorttmp1[1];
+    var showexec = `docker ps --format '{"ID":"{{ .ID }}", "Image": "{{ .Image }}", "Names":"{{ .Names }}", "Ports":"{{.Ports}}", "Networks":"{{.Networks}}", "Status":"{{.Status}}","RunningFor":"{{.RunningFor}}","CreatedAt":"{{.CreatedAt}}"}' | jq . -s `
+    exec(showexec, (err, stdout, stderr) => {
+              if (err) {
+                              console.error(`exec error: ${err}`);
+                              return;
+                            }
+            var nn = []
+            var string = stdout.toString()
+            var datajson = JSON.parse(string);
+
+            var results3 = []
+                    var grep3 = new RegExp('wgmount-');
+                    datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep3.test(datajson[i]['Names'])){
+                               results3.push(datajson[i]);
+                          }
+                      }
+                    datajson=results3
+
+            var results = []
+              if(filter !== 'NULL'){
+                    var grep = new RegExp(filter);
+                    var datalenth = datajson.length
+                    for (var i=0 ; i < datalenth ; i++)
+                      {
+                          if(grep.test(datajson[i]['Names'])){
+                               results.push(datajson[i]);
+                          }
+                      }
+                    datajson=results
+                  }
+
+       //swlabJZk0tKskTS
+
+
+        if(sortname == 'Names'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+              return a.Names.localeCompare(b.Names);
+            }else{
+              return b.Names.localeCompare(a.Names);
+            }
+          });
+        }else if(sortname == 'Status'){
+          datajson.sort(function (a, b) {
+            if(sortorder == 'asc'){
+                return a.Status.localeCompare(b.Status);
+            }else{
+                return b.Status.localeCompare(a.Status);
+            }
+          });
+        }
+      var resultid = []
+      var datalenth2 = datajson.length
+          for (var i=0 ; i < datalenth2 ; i++)
+          {
+            datajson[i].id=i
+            datajson[i]._id=i
+            resultid.push(datajson[i]);
+          }
+      datajson=resultid
+        var total = datajson.length;
+        var perpage = per_page
+        var lastpage = total/perpage;
+
+        if(lastpage <= 1) {
+          lastpage=1
+        }else{
+          lastpage++
+        }
+        lastpage = Math.trunc(lastpage);
+        var next=(page+1);
+        if(next >= lastpage){
+          next=lastpage;
+        }
+        var prev=(page-1);
+        if(prev == 0){
+          prev=1;
+        }
+        var from=((page-1)*perpage)+1;
+        var to=(perpage*page)
+              var myplaybooks = new Object();
+            var links = `
+              {
+                    "pagination": {
+                            "total": ${total},
+                            "per_page": ${perpage},
+                            "current_page": ${page},
+                            "last_page": ${lastpage},
+                            "next_page_url": "?page=${next}",
+                            "prev_page_url": "?page=${prev}",
+                            "from": ${from},
+                            "to": ${to},
+                            "frommongo": ${from},
+                            "tomongo": ${to}
+                          }
+                  }
+                `
+              myplaybooks.links = JSON.parse(links);
+              from--
+              myplaybooks.data = datajson.slice(from,to);
+              var RES = new Object();
+              RES.code    = req.query["action"]
+              RES.token    = req.query["token"]
+              RES.error = false
+              RES.error_msg = "ok"
+              RES.data = myplaybooks;
+              res.json(RES.data)
+    });
+});
+
+// VENUS
+app.get('/getservicesmountstatus', (req, res, next) => {
+
+        var RES = new Object();
+        RES.bootstrapstackname    = req.query["name"]
+        var showexec = `docker exec ${RES.bootstrapstackname} /bin/sh -c "/usr/local/bin/check_mount"`
+        exec(showexec, (err, stdout, stderr) => {
+           if (err) {
+              console.error(`exec error: ${err}`);
+              return;
+            }
+           if (stdout) {
+              var string = stdout.toString()
+              string = string.replace(/(\r\n|\n|\r|\t)/g,"");
+              if(string == 'yes'){
+                var found = 'yes';
+              }else{
+                var found = 'no';
+              }
+                      RES.error = false
+                      RES.error_msg = "ok"
+                      RES.test = string;
+                      RES.data = found;
+                      res.json(RES)
+
+            }else{
+                    var found = 'no'
+                      RES.error = false
+                      RES.error_msg = "ok"
+                      RES.data = found;
+                      res.json(RES)
+            }
+         });
+
+});
+
 async function mywgStatus(){
     //var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
      var mypath = process.cwd()
@@ -759,6 +1360,42 @@ async function mywgStatus(){
 
 }
 
+async function mywgcheckStatus(){
+    //var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
+     var mypath = process.cwd()
+
+				var showexec = `/bin/bash ${mypath}/files/checkstatus.sh`
+             log = spawn(showexec, {
+                shell: true,
+                cwd: mypath,
+                detached: false,
+                stdio: 'pipe'
+              });
+
+              log.stdout.on('data', function (data) {
+                var n = {}
+                n.data = data.toString()
+                n.data = n.data.replace(/(\r\n|\n|\r|\t)/g,"");
+								console.log('mywgcheckStatusdata '+JSON.stringify(n));
+								io.emit('mywgcheckStatus_res', n);
+              });
+
+              log.stderr.on('data', function (data) {
+                var n = {}
+                n.data = data.toString()
+								console.log('mywgcheckStatuserror '+JSON.stringify(n));
+								io.emit('mywgcheckStatus_res_error', n);
+              });
+
+              log.on('close', function (code) {
+                var n = {}
+                n.data = code
+								console.log('mywgcheckStatusclose '+JSON.stringify(code));
+								io.emit('mywgcheckStatus_res_close', n);
+              });
+
+}
+
 function mywgRemoveClosedConnection(){
     //var mongoserver = JSON.parse(fs.readFileSync('./hybrid/venus-stats/config.json', 'utf8'))
      var mypath = process.cwd()
@@ -777,7 +1414,9 @@ function mywgRemoveClosedConnection(){
                 n.data = n.data.replace(/(\r\n|\n|\r|\t)/g,"");
 								//console.log(n);
 								//console.log(n.data);
+       try { 
 								var interfaces = JSON.parse(n.data);
+                
 								var datalenth = interfaces.length
                 // interfaces found with connection=yes or no
 								for (var i=0 ; i < datalenth ; i++)
@@ -807,7 +1446,7 @@ function mywgRemoveClosedConnection(){
 														stdio: 'pipe'
 													});
 													log1.on('close', function (code) {
-																//console.log('close1 '+JSON.stringify(code));
+																console.log('close1close----------1 '+JSON.stringify(code));
 															var n = {}
 															n.data = code
 															io.emit('message_close', n);
@@ -816,6 +1455,7 @@ function mywgRemoveClosedConnection(){
                       //connection is ok 
                       // check if container is ok
 
+																console.log('close1close----------2 ');
                             var showexeccheck = `docker ps --format '{"Names":"{{ .Names }}", "Status":"{{.Status}}"}' | jq . -s `
                             exec(showexeccheck, (err, stdout, stderr) => {
                                if (err) {
@@ -844,7 +1484,8 @@ function mywgRemoveClosedConnection(){
                                       var wgdown = `/bin/bash /config/${nn.bootstrapstackid}/ifdown_linux`
                                       var showexecrm1 = `/bin/sh ./hybrid/connect/${bootstrapstackid}/swarmlabwgdown`
 
-                                      console.log('fount '+found + ' ' + showexecrm1 )
+                                      console.log('fount disconnect '+found + ' ' + showexecrm1 )
+                                   // auto close when no connection exist
                                    /*
                                       var showexec1 = `docker exec swlabadminvenus /bin/bash -c "${wgdown}"; ${showexecrm1}`
                                          log1 = spawn(showexec1, {
@@ -859,25 +1500,18 @@ function mywgRemoveClosedConnection(){
                                               n.data = code
                                               io.emit('message_close', n);
                                           });
-                                          */
+                                   */       
                                  }else{
-                                    console.log('fount '+found + ' ' + search )
+                                    console.log('fountsearch '+found + ' ' + search )
                                  }
                                }
                             })
 
-
-
-
-
-
-
-
-
-
-
                     }
 								}
+			 } catch (err) {
+					console.error(err);
+			 }
               });
 
               log.stderr.on('data', function (data) {
@@ -892,6 +1526,8 @@ function mywgRemoveClosedConnection(){
                 var n = {}
                 n.data = code
                 io.emit('message_close', n);
+                //auto close network container
+                //mywgcheckStatus();
               });
 
                 var n1 = {}
@@ -899,74 +1535,6 @@ function mywgRemoveClosedConnection(){
 								console.log('errorhello '+JSON.stringify(n1));
                 io.emit('message_err', n1);
 
-/*
-									 try {
-											var mongourl = `mongodb://${mongoserver.mongo_user}:${mongoserver.mongo_pass}@${mongoserver.mongo_ip}:${mongoserver.mongo_port}`;
-											const OPTS = {
-												useNewUrlParser: true,
-												useUnifiedTopology: true
-											};
-											MongoClient.connect(mongourl, OPTS, function(err, db) {
-													if(err){
-															console.log(err);
-													} else {
-														var dbo = db.db(mongoserver.mongo_db);
-														var limit = 2
-														dbo.collection(mongoserver.mongo_coll).find({"stackid":bootstrapstackid},{sort:{_id:-1}}).limit(limit).toArray(function(err, result) {
-															if(err){
-																	console.log(err);
-															} else {
-																console.log(JSON.stringify(result));
-																//if("transferTx" in result[0]){ 
-																	if(result[0].log[0].peers[respublickey].transferTx && result.length == 2){
-																		if(result[0].log[0].peers[respublickey].transferTx == result[1].log[0].peers[respublickey].transferTx){
-																			console.log(JSON.stringify(result.length));
-																			console.log(JSON.stringify('-------- '+JSON.stringify(result[0].log[0].peers[respublickey].transferTx)));
-																			console.log(JSON.stringify('-------- '+JSON.stringify(result[1].log[0].peers[respublickey].transferTx)));
-																		}
-																	}
-																db.close();
-															}
-														});
-													}
-											});
-									 } catch (err) {
-											console.error(err);
-									 }
-
-
-			 try {
-					var mongourl = `mongodb://${mongoserver.mongo_user}:${mongoserver.mongo_pass}@${mongoserver.mongo_ip}:${mongoserver.mongo_port}`;
-					const OPTS = {
-						useNewUrlParser: true,
-						useUnifiedTopology: true
-					};
-					MongoClient.connect(mongourl, OPTS, function(err, db) {
-							if(err){
-									console.log(err);
-							} else {
-								var dbo = db.db(mongoserver.mongo_db);
-							  var limit = 2
-							  dbo.collection(mongoserver.mongo_coll).find({"stackid":res.bootstrapstackid},{sort:{_id:-1}}).limit(limit).toArray(function(err, result) {
-									if(err){
-											console.log(err);
-									} else {
-										console.log(JSON.stringify(result));
-										//if("transferTx" in result[0]){ 
-											if(result[0].log[0].peers[res.publickey].transferTx && result.length == 2){
-										console.log(JSON.stringify(result.length));
-													console.log(JSON.stringify('-------- '+JSON.stringify(result[0].log[0].peers[res.publickey].transferTx)));
-													console.log(JSON.stringify('-------- '+JSON.stringify(result[1].log[0].peers[res.publickey].transferTx)));
-											}
-										db.close();
-									}
-								});
-							}
-					});
-			 } catch (err) {
-					console.error(err);
-			 }
-*/
 }
 mywgRemoveClosedConnection();
 
@@ -974,11 +1542,1112 @@ setInterval(function(){
       mywgRemoveClosedConnection()
 }, 45000)
 
+  async function socket_get_container_ports(containerservice){
+        try {
+            var mypath = process.cwd()
+            var service = {}
+            service.Name    = containerservice
+            service.Dir     = mypath
+            var showexec = `docker cp ${mypath}/files/findports.sh ${service.Name}:/tmp/findports.sh; docker exec ${service.Name} /bin/sh -c "/bin/sh /tmp/findports.sh"`
+            console.log(showexec)
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'info'
+                  try {
+                    n.data = data.toString()
+                    //n.data = JSON.parse(n.data)
+                  } catch (err) {
+                      console.log(err.stack || String(err));
+                  }
+                  console.log('data '+JSON.stringify(n.data));
+                  io.emit('virtual_port_info_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'info'
+                  n.data = data.toString()
+                  io.emit('virtual_port_info_reserror', n);
+                  console.log('error '+JSON.stringify(n.data));
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'close'
+                  n.exec = 'info'
+                  n.data = code
+                  io.emit('virtual_port_info_resclose', n);
+                });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+}
+
+function makeid(length) {
+      var result           = [];
+      var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      var charactersLength = characters.length;
+      for ( var i = 0; i < length; i++ ) {
+              result.push(characters.charAt(Math.floor(Math.random() * 
+                 charactersLength)));
+           }
+     return result.join('');
+}
+
+
 io.on('connection', function(socket) {
   console.log('new connection');
     socket.on('start', (value) => {
   			console.log('start'+ value);
     });
+
+    socket.on('share_app_info', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+        try {
+            service.Name = value.Names 
+            console.log(JSON.stringify(value));
+            var showexec = `docker inspect --format '{{json .Config.Labels}}' ${service.Name}`
+             log = spawn(showexec, {
+                shell: true,
+                cwd: mypath,
+                detached: false,
+                stdio: 'pipe'
+              });
+              log.stdout.on('data', function (data) {
+                var n = {}
+                n.status = 'data'
+                n.exec = 'inspect'
+                n.data = data.toString()
+								var interfaces = JSON.parse(n.data);
+                io.emit('share_app_res', n);
+              });
+              log.stderr.on('data', function (data) {
+                var n = {}
+                n.status = 'error'
+                n.exec = 'inspect'
+                n.data = data.toString()
+                io.emit('share_app_reserror', n);
+              });
+              log.on('close', function (code) {
+                var n = {}
+                n.status = 'close'
+                n.exec = 'inspect'
+                n.data = code
+                io.emit('share_app_resclose', n);
+              });
+            
+            var showexec1 = `docker ps --format '{"ID":"{{ .ID }}", "Image": "{{ .Image }}", "Names":"{{ .Names }}", "Ports":"{{.Ports}}", "Networks":"{{.Networks}}", "Status":"{{.Status}}","RunningFor":"{{.RunningFor}}","CreatedAt":"{{.CreatedAt}}"}' | jq . -s `
+             log1 = spawn(showexec1, {
+                shell: true,
+                cwd: mypath,
+                detached: false,
+                stdio: 'pipe'
+              });
+              log1.stdout.on('data', function (data) {
+                var n = {}
+                n.status = 'data'
+                n.exec = 'ps'
+                var string = data.toString()
+                var datajson = JSON.parse(string);
+
+                var results = []
+                var filter = `swarmlabwg-`
+                var grep = new RegExp(filter);
+                var datalenth = datajson.length
+                for (var i=0 ; i < datalenth ; i++)
+                {
+                      if(grep.test(datajson[i]['Names'])){
+                        results.push(datajson[i]);
+                      }
+                }
+                n.data = results
+                io.emit('share_app_res', n);
+              });
+              log1.stderr.on('data', function (data) {
+                var n = {}
+                n.status = 'error'
+                n.exec = 'ps'
+                n.data = data.toString()
+                io.emit('share_app_reserror', n);
+              });
+              log1.on('close', function (code) {
+                var n = {}
+                n.status = 'close'
+                n.exec = 'ps'
+                n.data = code
+                io.emit('share_app_resclose', n);
+              });
+
+
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('share_app', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+      /*
+       * value.c
+          this.dockercompose.stack    = 'com.docker.compose.project'
+          this.dockercompose.service  = 'com.docker.compose.service'
+          this.dockercompose.file     = 'com.docker.compose.project.config_files'
+          this.dockercompose.env      = 'com.docker.compose.project.environment_file'
+          this.dockercompose.dir      = 'com.docker.compose.project.working_dir'
+          value.s          [{"ID":"36be0c53c700","Image":"hub.swarmlab.io:5480/venus-alpine:latest","Names":"swarmlabwg-AcwtSX5hswT4pmObytxBjoCd4rDJMwB1","Ports":"80/tcp, 443/tcp, 8080/tcp, 8088/tcp, 51820/udp","Networks":"swlabAcwtSX5hsw","Status":"Up 35 minutes","RunningFor":"35 minutes ago","CreatedAt":"2021-05-26 13:21:08 +0300 EEST"}]
+          value.n conatiner name
+          */
+            console.log(JSON.stringify(value));
+        try {
+            service.Name    = mpath.basename(value.c.file)
+            service.Dir     = value.c.dir
+            service.stack   = value.c.stack
+            service.env     = value.c.env
+            service.service = value.c.service
+            service.network = value.n
+
+            console.log(JSON.stringify(value.c.statck));
+            if(value.c.stack){
+              var filename1 = service.Dir+"/"+service.stack+'_'+service.service+"-venus.yml"
+              var filenamedefault = service.Dir+"/"+service.stack+'_'+service.service+"-venus-default.yml"
+              var filenameyaml  = service.Dir+"/"+service.Name
+              var contents  = fs.readFileSync(filenameyaml, 'utf8')
+              var yamldata  = yaml.load(contents)
+              fs.exists(filenamedefault, (exists) => {
+                if(exists){
+                }else{
+                  fs.copyFile(filenameyaml, filenamedefault, (err) => {
+                      if (err){
+                        console.log('source.txt was not copied to '+ filenamedefault);
+                      }
+                        console.log('source.txt was  copied to '+ filenamedefault);
+                  });
+                }
+              });
+              console.log(JSON.stringify(yamldata));
+            
+              delete yamldata.services[service.service].ports 
+              delete yamldata.services[service.service].networks 
+              //yamldata.services[service.service].network_mode: "service:masternfsserver"
+              yamldata.services[service.service].network_mode = "container:"+service.network
+              console.log(yamldata.services[service.service])
+
+
+              var yamldata_out = yaml.dump(yamldata, {
+                'styles': {
+                      '!!null': '' // dump null as ~
+                      //'!!null': 'canonical' // dump null as ~
+                    },
+                'sortKeys': false        // sort object keys
+              });
+              console.log(JSON.stringify(yamldata_out));
+              fs.writeFileSync(filename1, yamldata_out);
+              //var showexec = `cd ${service.Dir}; docker-compose -f ${filename1} --project-directory ${service.Dir} --env-file ${service.env} up -d ${service.service}`
+              var showexec = `cd ${service.Dir}; docker-compose -f ${filename1} --project-directory ${service.Dir} up -d ${service.service}`
+              console.log(showexec);
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'share'
+                  n.compose = 'yes'
+                  n.data = data.toString()
+                  io.emit('share_app_exec_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'share'
+                  n.data = data.toString()
+                  n.compose = 'yes'
+                  io.emit('share_app_exec_reserror', n);
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'close'
+                  n.exec = 'share'
+                  n.compose = 'yes'
+                  n.data = code
+                  io.emit('share_app_exec_resclose', n);
+                });
+            }else{
+                var n = {}
+                n.status = 'close'
+                n.exec = 'share'
+                n.compose = 'no'
+                n.data = 'nodata'
+                io.emit('share_app_exec_resclose', n);
+            }
+
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('share_app_default', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.Name    = mpath.basename(value.c.file)
+            service.Dir     = value.c.dir
+            service.stack   = value.c.stack
+            service.env     = value.c.env
+            service.service = value.c.service
+            service.network = value.n
+
+            if(value.c.stack){
+              var filenamedefault = service.Dir+"/"+service.stack+'_'+service.service+"-venus-default.yml"
+              //var showexec = `docker-compose -f ${filenamedefault} --project-directory ${service.Dir} --env-file ${service.env} up -d ${service.service}`
+              var showexec = `cd ${service.Dir}; docker-compose -f ${filenamedefault} --project-directory ${service.Dir}  up -d ${service.service}`
+              console.log(showexec);
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'sharedefault'
+                  n.compose = 'yes'
+                  n.data = data.toString()
+                  io.emit('share_app_exec_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'sharedefault'
+                  n.data = data.toString()
+                  n.compose = 'yes'
+                  io.emit('share_app_exec_reserror', n);
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'close'
+                  n.exec = 'sharedefault'
+                  n.compose = 'yes'
+                  n.data = code
+                  io.emit('share_app_exec_resclose', n);
+                });
+            }else{
+                var n = {}
+                n.status = 'close'
+                n.exec = 'sharedefault'
+                n.compose = 'no'
+                n.data = 'nodata'
+                io.emit('share_app_exec_resclose', n);
+            }
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+
+
+    socket.on('virtual_port_getinfo', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            socket_get_container_ports(value.name)
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+
+    socket.on('container_info', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.Name    = mpath.basename(value.s.Names)
+            service.Dir     = value.c.dir
+            var showexec = `docker inspect --format '{{json .HostConfig.NetworkMode}}' ${service.Name}`
+            //get ports async
+                  //console.log(" exec PORT "+ service.Name);
+            // ip --brief address show
+            //var showexec = `docker inspect --format '{{json .Config}}' ${service.Name}`
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'info'
+                  n.data = data.toString()
+                  n.data = n.data.replace(/(\r\n|\n|\r)/gm, "");
+                  n.data = n.data.replace(/["']/g, "");
+                  console.log(JSON.stringify(n.data));
+                  var grep1a = new RegExp(/^container/);
+                  var grep1b = new RegExp(/^service/);
+                  if(grep1a.test(n.data) || grep1b.test(n.data)){
+                     var ndata  = n.data.replace(/["']/g, "");
+                     var grepsplit = new RegExp(':');
+                     if(grepsplit.test(ndata)){  // network_mode container
+                       var split = ndata.split(":")
+                       var containername = split[1].replace(/(\r\n|\n|\r)/gm, "");
+                       var showexec2 = `docker exec ${containername} /bin/sh -c "ip -j --brief address show"`
+                       //docker exec -it microservice-jupyter26_masterservice_1 /bin/sh -c "jupyter notebook list"
+                       console.log(showexec2)
+                       log2 = spawn(showexec2, {
+                          shell: true,
+                          cwd: service.Dir,
+                          detached: false,
+                          stdio: 'pipe'
+                        });
+                        log2.stdout.on('data', function (data) {
+                          var n = {}
+                          n.status = 'error'
+                          n.exec = 'info'
+                          n.data = data.toString()
+                  console.log('n.data 1 '+JSON.stringify(n.data));
+                  console.log('n.data 1------ '+JSON.stringify(service.Name));
+                          var grepjupyter = new RegExp('microservice-jupyter26');
+                          var grepjupyter30 = new RegExp('microservice-jupyter30');
+                          if(grepjupyter.test(service.Name)){
+                           //var showexec3 = `docker exec ${service.Name} /bin/sh -c "cat /home/jovyan/.local/share/jupyter/runtime/nbserver-46.json"`
+                           var showexec3 = `docker exec ${service.Name} /bin/sh -c "jupyter notebook list --json"`
+                          }else if(grepjupyter30.test(service.Name)){
+                           var showexec3 = `docker exec ${service.Name} /bin/sh -c "jupyter server list --json"`
+                          }else{
+                           var showexec3 = 'no'
+                          }
+                          if(showexec3 != 'no'){
+                  console.log('n.data 2 '+JSON.stringify(showexec3));
+                           log3 = spawn(showexec3, {
+                              shell: true,
+                              cwd: service.Dir,
+                              detached: false,
+                              stdio: 'pipe'
+                            });
+                            log3.stdout.on('data', function (data) {
+                              var nn    = {}
+                              nn.status  = 'error'
+                              nn.exec    = 'info'
+                              nn.data    = n.data
+                              nn.jupyter = data.toString()
+                              console.log(nn)
+                  console.log('n.data 3 '+JSON.stringify(n.data));
+                              io.emit('container_info_res', nn);
+                            });
+                          }else{
+                            io.emit('container_info_res', n);
+                            console.log(n.data)
+                          }
+
+                        });
+                        log2.stderr.on('data', function (data) {
+                          var n = {}
+                          n.status = 'error'
+                          n.exec = 'sharedefault'
+                          n.data = data.toString()
+                          console.log(n.data)
+                          io.emit('container_info_reserror', n);
+                        });
+                      }
+                  } else{ //  network mode other 
+                      var grep2a = new RegExp(/^microservice-/);
+                      var grep2b = new RegExp(/^hybrid-/);
+                      if(grep2a.test(n.data) || grep2b.test(n.data)){
+            console.log('-----------------------------------');
+                              var showexec2 = `docker exec ${service.Name} /bin/sh -c "ip -j --brief address show"`
+                               log2 = spawn(showexec2, {
+                                  shell: true,
+                                  cwd: service.Dir,
+                                  detached: false,
+                                  stdio: 'pipe'
+                                });
+                                log2.stdout.on('data', function (data) {
+                                  var n = {}
+                                  n.status = 'error'
+                                  n.exec = 'info'
+                                  n.data = data.toString()
+                                  console.log(n)
+                                  io.emit('container_info_res', n);
+                                });
+                                log2.stderr.on('data', function (data) {
+                                  var n = {}
+                                  n.status = 'error'
+                                  n.exec = 'sharedefault'
+                                  n.data = data.toString()
+                                  n.command = `docker exec ${service.Name} /bin/sh -c "ip address show" <br> <br> 
+                              docker exec ${service.Name} /bin/sh -c "/sbin/ifconfig " <br>
+                                    `
+                                  console.log(n.data)
+                                  io.emit('container_info_reserror', n);
+                                });
+                      }
+                  }
+                  //var showexec1 = `docker inspect --format '{{json .HostConfig.NetworkMode}}' ${service.Name}`
+                  //io.emit('container_info_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'info'
+                  n.data = data.toString()
+                  io.emit('container_info_reserror', n);
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'close'
+                  n.exec = 'info'
+                  n.data = code
+                  io.emit('container_info_resclose', n);
+                });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('virtual_net_info', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+            console.log('-----------------------------------');
+        try {
+            service.Name    = mpath.basename(value.s.Names)
+            service.Dir     = value.c.dir
+            var showexec = `docker exec ${service.Name} /bin/sh -c "ip -j --brief address show"`
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'info'
+                  n.data = data.toString()
+                  try {
+                    n.data = JSON.parse(n.data)
+                  } catch (err) {
+                      console.log(err.stack || String(err));
+                  }
+                  console.log(JSON.stringify(n.data));
+                  io.emit('virtual_net_info_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'info'
+                  n.data = data.toString()
+                  io.emit('virtual_net_info_reserror', n);
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'close'
+                  n.exec = 'info'
+                  n.data = code
+                  io.emit('virtual_net_info_resclose', n);
+                });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('share_volume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.Options       = value.options
+            service.Stackname     = value.stackname
+            service.Network       = value.network
+            var stackid = value.network.split("-")
+            var sharename = stackid[1].slice(0, 7)
+            var sharenetwork = stackid[1].slice(0, 10)
+            //var sharename = makeid(7)
+
+            var sharerights = 'ro'
+            if(service.Options == 'write'){
+              sharerights = 'rw'
+            }
+
+            var share_dir=`${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}`
+var stackid_yml = `version: "3.8"
+  
+services:
+
+  wgshare-${sharename}:
+    image: hub.swarmlab.io:5480/venus-fsshare-server:latest
+    network_mode: "container:${service.Network}"
+    privileged: true
+    container_name: wgshare-${sharename}
+    restart: unless-stopped
+    environment:
+     - SHARED_DIRECTORY=/data
+     - NFS_EXPORT_0='/data *(${sharerights},fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash)'
+     - share_name=${sharename}
+     - share_stackname=${service.Network}
+     - share_volume=${service.Stackname}
+
+    volumes:
+      - ${share_dir}:/data
+      - /lib/modules:/lib/modules:ro
+    cap_add:
+      - SYS_ADMIN
+      - SYS_MODULE
+`
+
+            var stackid_env = `share_container=${service.Network}
+            share_name=${sharename}
+            share_rights=${sharerights}
+            share_dir=${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}
+            share_stackname=${service.Network}
+            share_volume=${service.Stackname}
+            `
+            var shareinfo = {}
+            shareinfo.stackid     = service.Network
+            shareinfo.name        = stackid[1]
+            shareinfo.volumename  = service.Stackname
+            shareinfo.options     = service.Options
+
+  //var showexec = `mkdir -p ${mypath}/files/startnfs.yml ${mypath}/hybrid/connect/${stackid[1]}/volumes; cp ${mypath}/files/startnfs.yml ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}.yml; echo "${stackid_env}" > ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}.env; mkdir ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}; docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes up --build --force-recreate -d`
+
+          try {
+              var showexecyml = `${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.yml`
+              fs.writeFileSync(showexecyml, stackid_yml, { mode: 0o755 });
+          } catch(err) {
+              console.error(err);
+          }
+  var showexecdown = `docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes down`
+  var showexecstop = `docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes stop`
+  var showexecrm = `docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes rm`
+  var showexec = `mkdir -p ${mypath}/files/startnfs.yml ${mypath}/hybrid/connect/${stackid[1]}/volumes; echo "${stackid_env}" > ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.env; mkdir ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}; ${showexecdown}; ${showexecstop}; ${showexecrm}; docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes/${stackid[1]}_${service.Stackname}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes up --build --force-recreate -d --remove-orphans`
+               console.log(showexec)
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'sharevolume'
+                  n.data = data.toString()
+                  console.log(JSON.stringify(n.data));
+                  io.emit('share_volume_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'sharevolume'
+                  n.data = data.toString()
+                  io.emit('share_volume_res_reserror', n);
+                });
+                log.on('close', function (code) {
+                     var showexec1 = `docker exec ${service.Network} /bin/sh -c "ip -4 addr show dev swlab${sharenetwork} | grep inet | tr -s ' ' | cut -d' ' -f3 | head -n 1"`
+                     console.log(showexec1)
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'sharevolume'
+                        n.network = data.toString()
+                        n.network = n.network.replace(/(\r\n|\n|\r|\t)/g,"");
+                        n.data = code
+                        n.shareinfo = shareinfo
+                        console.log(JSON.stringify(n.data));
+                        io.emit('share_volume_res_resclose', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'sharevolume'
+                        n.data = data.toString()
+                        io.emit('share_volume_res_reserror', n);
+                      });
+
+                });
+
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('stop_share_volume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.Name       = value
+
+            var showexec = `docker inspect --format '{{json .Config.Labels}}' ${service.Name}`
+               console.log(showexec)
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n1 = {}
+                  n1.status = 'data'
+                  n1.exec = 'stop_share_volume'
+                  n1.data = data.toString()
+                  n1.data = JSON.parse(n1.data)
+                  var wdir = n1.data["com.docker.compose.project.working_dir"]
+                  var wyml = n1.data["com.docker.compose.project.config_files"]
+
+                    console.log(JSON.stringify(wdir));
+                    var showexec1 = `docker-compose  -f ${wyml} --project-directory ${wdir} down --remove-orphans`
+                        console.log('rmmount '+JSON.stringify(showexec1));
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'stop_share_volume'
+                        n.network = data.toString()
+                        n.network = n.network.replace(/(\r\n|\n|\r|\t)/g,"");
+                        n.info = n1
+                        n.data = code
+                        console.log(JSON.stringify(n.data));
+                        io.emit('stop_share_volume_res', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'stop_share_volume'
+                        n.data = data.toString()
+                            //var showexec2 = `docker inspect --format '{{json .HostConfig.NetworkMode}}' ${service.Name}`
+                            //var showexec2 = `docker network disconnect -f $(docker inspect --format '{{json .HostConfig.NetworkMode}}' ${service.Name} | cut -d':' -f2) ${service.Name}; docker stop ${service.Name}; docker container rm ${service.Name}`
+                            var showexec2 = `docker stop ${service.Name}; docker container rm ${service.Name}`
+                            console.log(JSON.stringify(showexec2));
+                             log2 = spawn(showexec2, {
+                                shell: true,
+                                cwd: service.Dir,
+                                detached: false,
+                                stdio: 'pipe'
+                              });
+                              log2.stdout.on('data', function (data) {
+                                var n1 = {}
+                                n1.status = 'data'
+                                n1.exec = 'stop_share_volume'
+                                n1.data = data.toString()
+                                console.log(JSON.stringify(n1.data));
+                                io.emit('stop_share_volume_force_res', n1);
+                              });
+
+                        console.log('errorrm '+JSON.stringify(JSON.stringify(n.data)));
+                        io.emit('stop_share_volume_res', n);
+                      });
+                      log1.on('close', function (code) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'stop_share_volume'
+                        n.data = code.toString()
+                        io.emit('stop_share_volume_res_resclose', n);
+                      });
+
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'stop_share_volume'
+                  n.data = data.toString()
+                  io.emit('stop_share_volume_res_reserror', n);
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'stop_share_volume'
+                  n.data = code.toString()
+                  io.emit('stop_share_volume_res_resclose1', n);
+                });
+
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('connect_nfsvolume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.container       = value.share_container
+            service.ip              = value.share_ip
+            //service.volumename      = value.share_volumename
+            service.volumename      = 'volumename'
+            var stackid = value.share_container.split("-")
+            var sharename = stackid[1].slice(0, 7)
+
+            var stackid_env = `share_container=${service.container}
+            share_name=${sharename}
+            share_ip=${service.ip}
+            share_dir=${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}
+            `
+            var shareinfo = {}
+            shareinfo.stackid     = service.container
+            shareinfo.name        = stackid[1]
+            shareinfo.volumename  = service.volumename
+            shareinfo.share_ip    = service.ip
+            shareinfo.share_name  = sharename
+
+
+            var stackid_yaml = `version: "3.8"
+services:
+  wgmount-${sharename}:
+    image: hub.swarmlab.io:5480/venus-fsshare-client
+    container_name: wgmount-${sharename}
+    restart: unless-stopped
+    network_mode: "container:\${share_container}"
+    privileged: true
+    container_name: wgmount-\${share_name}
+    environment:
+     - FSTYPE=nfs4
+     - SERVER=\${share_ip}
+     - SHARE=/
+     - MOUNTPOINT=/mnt/share
+     - MOUNT_OPTIONS="vers=4,loud"
+    volumes:
+      - \${share_dir}:/mnt/share:shared
+      - /lib/modules:/lib/modules:ro
+    cap_add:
+      - SYS_ADMIN
+      - SYS_MODULE
+`
+            shareinfo.share_dir   = `${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}`
+          try {
+              var showexecyml = `${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml`
+              fs.writeFileSync(showexecyml, stackid_yaml, { mode: 0o755 });
+          } catch(err) {
+              console.error(err);
+          }
+  //var showexec = `mkdir -p ${mypath}/files/startnfs.yml ${mypath}/hybrid/connect/${stackid[1]}/volumes_client; cp ${mypath}/files/startnfsclient.yml ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml; echo "${stackid_env}" > ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env; mkdir ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}; docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes_client up --build --force-recreate -d`
+  var showexecdown = `docker-compose   -f ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes_client down`
+  var showexecstop = `docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes_client stop`
+  var showexecirm = `docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes_client rm`
+  var showexecpull = `docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes_client pull`
+  var showexec = `mkdir -p ${mypath}/files/startnfs.yml ${mypath}/hybrid/connect/${stackid[1]}/volumes_client; echo "${stackid_env}" > ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env; mkdir ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}; ${showexecdown}; ${showexecstop}; ${showexecirm}; ${showexecpull};   docker-compose  -f ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml --env-file ${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.env --project-directory ${mypath}/hybrid/connect/${stackid[1]}/volumes_client up --build --force-recreate -d --remove-orphans`
+               console.log(showexec)
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n = {}
+                  n.status = 'data'
+                  n.exec = 'sharevolume'
+                  n.data = data.toString()
+                  console.log(JSON.stringify(n.data));
+                  io.emit('connect_nfsvolume_res', n);
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'sharevolume'
+                  n.data = data.toString()
+                  io.emit('connect_nfsvolume_res_reserror', n);
+                });
+                log.on('close', function (code) {
+                     var showexec1 = `docker inspect --format '{{json .State.Status}}' wgmount-${sharename}`
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'sharevolume'
+                        n.network = data.toString()
+                        n.data = code
+                        n.shareinfo = shareinfo
+                        console.log(JSON.stringify(n.data));
+                        io.emit('connect_nfsvolume_res_resclose', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'sharevolume'
+                        n.data = data.toString()
+                        io.emit('connect_nfsvolume_res_reserror', n);
+                      });
+                        console.log(JSON.stringify(code));
+                });
+
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('stop_client_volume_connection', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.Name       = value
+
+            var showexec = `docker inspect --format '{{json .Config.Labels}}' ${service.Name}`
+               console.log(showexec)
+               log = spawn(showexec, {
+                  shell: true,
+                  cwd: service.Dir,
+                  detached: false,
+                  stdio: 'pipe'
+                });
+                log.stdout.on('data', function (data) {
+                  var n1 = {}
+                  n1.status = 'data'
+                  n1.exec = 'stop_client_volume_connection'
+                  n1.data = data.toString()
+                  n1.data = JSON.parse(n1.data)
+                  var wdir = n1.data["com.docker.compose.project.working_dir"]
+                  var wyml = n1.data["com.docker.compose.project.config_files"]
+
+                    console.log(JSON.stringify(wdir));
+                    var showexec1 = `docker-compose  -f ${wyml} --project-directory ${wdir} down`
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'stop_share_volume'
+                        n.network = data.toString()
+                        n.network = n.network.replace(/(\r\n|\n|\r|\t)/g,"");
+                        n.info = n1
+                        n.data = code
+                        console.log(JSON.stringify(n.data));
+                        io.emit('stop_client_volume_connection_res', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'stop_share_volume'
+                        n.data = data.toString()
+                        io.emit('stop_client_volume_connection_res', n);
+                      });
+                      log1.on('close', function (code) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'stop_share_volume'
+                        n.data = code.toString()
+                        io.emit('stop_client_volume_connection_res_resclose', n);
+                      });
+
+                });
+                log.stderr.on('data', function (data) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'stop_share_volume'
+                  n.data = data.toString()
+                  io.emit('stop_client_volume_connection_res_reserror', n);
+                });
+                log.on('close', function (code) {
+                  var n = {}
+                  n.status = 'error'
+                  n.exec = 'stop_share_volume'
+                  n.data = code.toString()
+                  io.emit('stop_client_volume_connection_res_resclose1', n);
+                });
+
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('mount_nfsvolume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.container       = value
+                     var showexec1 = `docker exec ${service.container} /bin/sh -c "/bin/sh /usr/local/bin/startfs.sh"`
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'mountvolume'
+                        n.data = data.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('mount_nfsvolume_res_resclose', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'mountvolume'
+                        n.data = data.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('mount_nfsvolume_res_reserror', n);
+                      });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('umount_nfsvolume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.container       = value
+                     var showexec1 = `docker exec ${service.container} /bin/sh -c "/bin/sh /usr/local/bin/stopfs.sh"`
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'mountvolume'
+                        n.data = data.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('mount_nfsvolume_res_resclose', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'mountvolume'
+                        n.data = data.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('mount_nfsvolume_res_reserror', n);
+                      });
+                      log1.on('close', function (code) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'mountvolume'
+                        n.data = code.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('mount_nfsvolume_res_resclose', n);
+                      });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('info_nfsvolume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.container       = value
+                     var showexec1 = `docker inspect --format '{{json .Mounts}}' ${service.container}`
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'infomountvolume'
+                        n.data = data.toString()
+                        n.data = JSON.parse(n.data)
+                        console.log(JSON.stringify(n.data));
+                        io.emit('info_nfsvolume_res_resclose', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'infomountvolume'
+                        n.data = data.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('info_nfsvolume_res_reserror', n);
+                      });
+                      log1.on('close', function (code) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'infomountvolume'
+                        n.data = code.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('info_nfsvolume_res_resclose', n);
+                      });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+    socket.on('info_nfsservervolume', (value) => {
+        var service = {}
+        var mypath = process.cwd()
+            console.log(JSON.stringify(value));
+        try {
+            service.container       = value
+                     var showexec1 = `docker inspect --format '{{json .Mounts}}' ${service.container}`
+                     log1 = spawn(showexec1, {
+                        shell: true,
+                        cwd: service.Dir,
+                        detached: false,
+                        stdio: 'pipe'
+                      });
+                      log1.stdout.on('data', function (data) {
+                        var n = {}
+                        n.status = 'data'
+                        n.exec = 'infomountvolume'
+                        n.data = data.toString()
+                        n.data = JSON.parse(n.data)
+                        console.log(JSON.stringify(n.data));
+                        io.emit('info_nfsservervolume_res_resclose', n);
+                      });
+                      log1.stderr.on('data', function (data) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'infomountvolume'
+                        n.data = data.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('info_nfsservervolume_res_reserror', n);
+                      });
+                      log1.on('close', function (code) {
+                        var n = {}
+                        n.status = 'error'
+                        n.exec = 'infomountvolume'
+                        n.data = code.toString()
+                        console.log(JSON.stringify(n.data));
+                        io.emit('info_nfsservervolume_res_resclose', n);
+                      });
+        } catch (err) {
+            console.log(err.stack || String(err));
+        }
+   });
+
+
 });
 
 server.listen(serverPort, function() {

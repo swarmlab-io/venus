@@ -1,6 +1,6 @@
 
 
-<img align="center" width="300" height="300" src="https://git.swarmlab.io:3000/swarmlab/venus-client/raw/branch/master/images/globe1.png">
+<img align="center" height="300"   src="https://git.swarmlab.io:3000/swarmlab/venus-client/raw/branch/master/images/venus1.png">
 
 
 
@@ -20,6 +20,8 @@
   *  Virtual Classrooms
   * Proof-of-Concept (POC)
   * anything else you that might suit your needs in a dynamic and Scalable Distributed Architecture  
+
+
 
 :information_source: <b>All the above are available in private, public and hybrid format, satisfying all possible needs.</b>
 
@@ -46,7 +48,7 @@
 <br>
 
 ### <a name="introduction"></a>
-## <b>Swarmlab Venus</b> is Swarmlabs hybrids syblin, diagnosed with the VPN disease.  
+## <b>Swarmlab Venus</b>  
 
 Swarmlab venus provides the user with the unique abillity to create **virtual networks** and use them to project for a  Virtual Classroom, an app of your own making or proof of concept. An all of that <b>using only a browser</b> of their choice.
   
@@ -64,11 +66,11 @@ With venus you can now as part of the cloud work <b>independantly</b> but also s
 
 The venus service allows us to utilize the power of Swarmlab itself but also combine it with the practiacally unlimited computing of our own machines.
 
-## Another Swarmlab app. Why?
+:information_source: <b>Create hybrid or cross-platform solutions.</b> 
 
-How does Swarmlab Venus differ from Swarmlab Hybrid? 
+## Swarmlab Venus and Swarmlab Hybrid 
 
-Well swarmlab-hybrid forces server-client/containerized applications while venus allows for peer-to-peer connection! You can create and connect directly to a network with your coworkers, whithout needing a server.
+Well "swarmlab-hybrid" forces server-client/containerized applications while "venus" allows for peer-to-peer connection! You can create and connect directly to a network with your coworkers, whithout needing a server.
 
 Ofcourse you can use venus independantly or alongside swarmlab and all of its powerful features.
   
