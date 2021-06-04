@@ -1988,9 +1988,16 @@ io.on('connection', function(socket) {
                                   n.status = 'error'
                                   n.exec = 'sharedefault'
                                   n.data = data.toString()
-                                  n.command = `docker exec ${service.Name} /bin/sh -c "ip address show" <br> <br> 
-                              docker exec ${service.Name} /bin/sh -c "/sbin/ifconfig " <br>
-                                    `
+                                  n.command = `docker exec ${service.Name} /bin/sh -c "ifconfig" <br> <br>`
+                                  var grepjupyter1 = new RegExp('microservice-jupyter26');
+                                  var grepjupyter301 = new RegExp('microservice-jupyter30');
+                                  if(grepjupyter1.test(service.Name)){
+                                      n.command += `docker exec ${service.Name} /bin/sh -c "jupyter notebook list"`
+                                  }else if(grepjupyter301.test(service.Name)){
+                                      n.command += `docker exec ${service.Name} /bin/sh -c "jupyter server list"`
+                                  }
+
+
                                   console.log(n.data)
                                   io.emit('container_info_reserror', n);
                                 });
@@ -2340,8 +2347,18 @@ services:
 `
             shareinfo.share_dir   = `${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}`
           try {
-              var showexecyml = `${mypath}/hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml`
-              fs.writeFileSync(showexecyml, stackid_yaml, { mode: 0o755 });
+              var showexecicreatedir = `./hybrid/connect/${stackid[1]}/volumes_client`
+              if (!fs.existsSync(showexecicreatedir)){
+                    fs.mkdirSync(showexecicreatedir, { recursive: true });
+                    var showexecyml = `./hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml`
+                    //fs.writeFileSync(showexecyml, stackid_yaml, { mode: 0o755 });
+                    //console.log('create yaml ' + showexecyml)
+                    fs.writeFileSync(showexecyml, stackid_yaml);
+              }else{
+                    var showexecyml = `./hybrid/connect/${stackid[1]}/volumes_client/${stackid[1]}_${service.volumename}.yml`
+                    //console.log('create yaml1 ' + showexecyml)
+                    fs.writeFileSync(showexecyml, stackid_yaml);
+              }
           } catch(err) {
               console.error(err);
           }
@@ -2567,38 +2584,63 @@ services:
             console.log(JSON.stringify(value));
         try {
             service.container       = value
-                     var showexec1 = `docker inspect --format '{{json .Mounts}}' ${service.container}`
-                     log1 = spawn(showexec1, {
-                        shell: true,
-                        cwd: service.Dir,
-                        detached: false,
-                        stdio: 'pipe'
-                      });
-                      log1.stdout.on('data', function (data) {
-                        var n = {}
-                        n.status = 'data'
-                        n.exec = 'infomountvolume'
-                        n.data = data.toString()
-                        n.data = JSON.parse(n.data)
-                        console.log(JSON.stringify(n.data));
-                        io.emit('info_nfsvolume_res_resclose', n);
-                      });
-                      log1.stderr.on('data', function (data) {
-                        var n = {}
-                        n.status = 'error'
-                        n.exec = 'infomountvolume'
-                        n.data = data.toString()
-                        console.log(JSON.stringify(n.data));
-                        io.emit('info_nfsvolume_res_reserror', n);
-                      });
-                      log1.on('close', function (code) {
-                        var n = {}
-                        n.status = 'error'
-                        n.exec = 'infomountvolume'
-                        n.data = code.toString()
-                        console.log(JSON.stringify(n.data));
-                        io.emit('info_nfsvolume_res_resclose', n);
-                      });
+
+              var showmount = `docker exec ${service.container} /bin/sh -c "/usr/local/bin/check_mount"`
+              exec(showmount, (err, stdout, stderr) => {
+                 if (err) {
+                    console.error(`exec error: ${err}`);
+                    return;
+                  }
+                 if (stdout) {
+                        var string = stdout.toString()
+                        string = string.replace(/(\r\n|\n|\r|\t)/g,"");
+                        if(string == 'yes'){
+                          var found = 'yes';
+                          // mount yes find directory
+                           var showexec1 = `docker inspect --format '{{json .Mounts}}' ${service.container}`
+                           log1 = spawn(showexec1, {
+                              shell: true,
+                              cwd: service.Dir,
+                              detached: false,
+                              stdio: 'pipe'
+                            });
+                            log1.stdout.on('data', function (data) {
+                              var n = {}
+                              n.status = 'data'
+                              n.mount = found
+                              n.exec = 'infomountvolume'
+                              n.data = data.toString()
+                              n.data = JSON.parse(n.data)
+                              console.log(JSON.stringify(n.data));
+                              io.emit('info_nfsvolume_res_resclose', n);
+                            });
+                            log1.stderr.on('data', function (data) {
+                              var n = {}
+                              n.status = 'error'
+                              n.exec = 'infomountvolume'
+                              n.data = data.toString()
+                              console.log(JSON.stringify(n.data));
+                              io.emit('info_nfsvolume_res_reserror', n);
+                            });
+                            log1.on('close', function (code) {
+                              var n = {}
+                              n.status = 'error'
+                              n.exec = 'infomountvolume'
+                              n.data = code.toString()
+                              console.log(JSON.stringify(n.data));
+                              io.emit('info_nfsvolume_res_resclose', n);
+                            });
+                             
+                     }else{
+                          var found = 'no';
+                              var n = {}
+                              n.status = 'error'
+                              n.exec = 'infomountvolume'
+                              n.mount = found
+                              io.emit('info_nfsvolume_res_resclose', n);
+                     }
+                 }
+             });
         } catch (err) {
             console.log(err.stack || String(err));
         }
