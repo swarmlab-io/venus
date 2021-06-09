@@ -12,7 +12,7 @@
 
 ## Build the network you require on demand and without effort.
 
-<img align="right" width="300" height="300" src="https://git.swarmlab.io:3000/swarmlab/venus-client/raw/branch/master/images/venus-net.png">
+<img align="right" width="300" height="300" src="https://git.swarmlab.io:3000/swarmlab/venus-client/raw/branch/master/images/federated1.png">
 ### You can  Create and manage 
 
   * on-demand sandbox environments
